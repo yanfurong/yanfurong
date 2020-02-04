@@ -128,7 +128,7 @@ jobs:
         EOF
         # 常用LuCI插件选择:
         cat >> .config <<EOF     
-        #CONFIG_PACKAGE_luci-app-accesscontrol=y
+        # CONFIG_PACKAGE_luci-app-accesscontrol is not set
         # CONFIG_PACKAGE_luci-app-adblock is not set
         # CONFIG_PACKAGE_luci-app-adbyby-plus is not set
         # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
