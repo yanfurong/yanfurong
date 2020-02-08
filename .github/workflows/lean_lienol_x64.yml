@@ -136,7 +136,7 @@ jobs:
         CONFIG_PACKAGE_luci-app-arpbind=y
         CONFIG_PACKAGE_luci-app-autoreboot=y
         CONFIG_PACKAGE_luci-app-brook-server=y
-        CONFIG_PACKAGE_luci-app-cifsd=y
+        #CONFIG_PACKAGE_luci-app-cifsd=y
         CONFIG_PACKAGE_luci-app-ddns=y
         CONFIG_PACKAGE_luci-app-docker=y
         CONFIG_PACKAGE_luci-app-filetransfer=y
@@ -188,6 +188,7 @@ jobs:
         CONFIG_PACKAGE_luci-app-zerotier=y
         # CONFIG_PACKAGE_luci-app-unblockmusic is not set
         # CONFIG_PACKAGE_luci-app-qbittorrent is not set
+        #CONFIG_PACKAGE_luci-app-advanced-reboot=y
         
         EOF
         # LuCI主题:
@@ -209,6 +210,14 @@ jobs:
         CONFIG_PACKAGE_hd-idle=y
         CONFIG_PACKAGE_iperf3=y
         CONFIG_PACKAGE_mount-utils=y
+        CONFIG_PACKAGE_mount-utils=y
+        CONFIG_PACKAGE_e2fsprogs=y
+        CONFIG_PACKAGE_automount=y
+        CONFIG_PACKAGE_autosamba=y
+        CONFIG_PACKAGE_fdisk=y
+        CONFIG_PACKAGE_e2fsprogs=y
+        #CONFIG_PACKAGE_k3wifi=y
+        CONFIG_PACKAGE_shadowsocksr-libev-server=y
         EOF
         # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
         cat >> .config <<EOF
