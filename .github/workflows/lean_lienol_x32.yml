@@ -6,7 +6,7 @@
 # Blog: https://p3terx.com
 #=================================================
 
-name: Lean_lienol-k3
+name: Lean_lienol-x32
 
 on: 
   release:
@@ -56,11 +56,11 @@ jobs:
     - name: Update & Install feeds
       working-directory: ./openwrt
       run: |
-        sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
-        sed -i 's/OpenWrt/Phicomm K3/g' package/base-files/files/bin/config_generate
+        sed -i 's/192.168.1.1/192.168.8.222/g' package/base-files/files/bin/config_generate
+        sed -i 's/OpenWrt/HP GEN8/g' package/base-files/files/bin/config_generate
         sed -i '4a src-git lienol https://github.com/Lienol/openwrt-package' feeds.conf.default
         ./scripts/feeds update -a
-        rm -rf feeds/lienol/others/luci-app-verysync && rm -rf feeds/lienol/package/shadowsocksr-libev && rm -rf feeds/lienol/package/trojan && rm -rf feeds/lienol/package/v2ray && rm -rf feeds/lienol/package/pdnsd-alt && rm -rf feeds/lienol/package/openssl1.1 && rm -rf feeds/lienol/package/ipt2socks && rm -rf feeds/lienol/package/verysync && rm -rf package/lean/kcptun && rm -rf package/lean/luci-app-kodexplorer && rm -rf package/lean/luci-app-pppoe-relay && rm -rf package/lean/luci-app-pptp-server && rm -rf package/lean/luci-app-v2ray-server
+        #rm -rf feeds/lienol/others/luci-app-verysync && rm -rf feeds/lienol/package/shadowsocksr-libev && rm -rf feeds/lienol/package/trojan && rm -rf feeds/lienol/package/v2ray && rm -rf feeds/lienol/package/pdnsd-alt && rm -rf feeds/lienol/package/openssl1.1 && rm -rf feeds/lienol/package/ipt2socks && rm -rf feeds/lienol/package/verysync && rm -rf package/lean/kcptun && rm -rf package/lean/luci-app-kodexplorer && rm -rf package/lean/luci-app-pppoe-relay && rm -rf package/lean/luci-app-pptp-server && rm -rf package/lean/luci-app-v2ray-server
         ./scripts/feeds install -a
         ./scripts/feeds install -a
     - name: Costom configure file
@@ -70,9 +70,9 @@ jobs:
         touch ./.config
         # 编译x64固件:
         cat >> .config <<EOF
-        CONFIG_TARGET_bcm53xx=y
-        CONFIG_TARGET_bcm53xx_DEVICE_phicomm-k3=y
-        CONFIG_TARGET_BOARD="bcm53xx"
+        CONFIG_TARGET_x86=y
+        CONFIG_TARGET_x86_generic=y
+        CONFIG_TARGET_x86_generic_Generic=y
         EOF
         # 固件压缩:
         cat >> .config <<EOF
@@ -111,8 +111,7 @@ jobs:
         CONFIG_PACKAGE_rpcbind=y
         CONFIG_PACKAGE_yaaw=y
         CONFIG_RPCBIND_LIBWRAP=y
-        CONFIG_RPCBIND_RMTCALLS=y
-        CONFIG_PACKAGE_openssh-sftp-server=y          
+        CONFIG_RPCBIND_RMTCALLS=y          
         EOF
         # USB3.0支持:
         cat >> .config <<EOF
@@ -121,24 +120,25 @@ jobs:
         CONFIG_PACKAGE_kmod-usb2=y
         CONFIG_PACKAGE_kmod-usb2-pci=y
         CONFIG_PACKAGE_kmod-usb3=y
-        #CONFIG_PACKAGE_kmod-b44=y
-        #CONFIG_PACKAGE_kmod-phy-broadcom=y
-        #CONFIG_PACKAGE_kmod-phylib-broadcom=y
-        #CONFIG_PACKAGE_kmod-ssb=y
-        #CONFIG_PACKAGE_kmod-tg3=y
+        CONFIG_PACKAGE_kmod-b44=y
+        CONFIG_PACKAGE_kmod-phy-broadcom=y
+        CONFIG_PACKAGE_kmod-phylib-broadcom=y
+        CONFIG_PACKAGE_kmod-ssb=y
+        CONFIG_PACKAGE_kmod-tg3=y
         EOF
         # 常用LuCI插件选择:
         cat >> .config <<EOF     
         # CONFIG_PACKAGE_luci-app-accesscontrol is not set
         # CONFIG_PACKAGE_luci-app-adblock is not set
         # CONFIG_PACKAGE_luci-app-adbyby-plus is not set
+        # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
         CONFIG_PACKAGE_luci-app-aria2=y
         CONFIG_PACKAGE_luci-app-arpbind=y
         CONFIG_PACKAGE_luci-app-autoreboot=y
-        #CONFIG_PACKAGE_luci-app-brook-server=y
+        CONFIG_PACKAGE_luci-app-brook-server=y
         #CONFIG_PACKAGE_luci-app-cifsd=y
         CONFIG_PACKAGE_luci-app-ddns=y
-        # CONFIG_PACKAGE_luci-app-dockerman is not set
+        CONFIG_PACKAGE_luci-app-dockerman=y
         CONFIG_PACKAGE_luci-app-filetransfer=y
         CONFIG_PACKAGE_luci-app-firewall=y
         CONFIG_PACKAGE_luci-app-flowoffload=y
@@ -146,7 +146,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-ipsec-vpnd=y
         # CONFIG_PACKAGE_luci-app-kcptun is not set
         CONFIG_PACKAGE_luci-app-minidlna=y
-        CONFIG_PACKAGE_luci-app-nfs=y
         CONFIG_PACKAGE_luci-app-nlbwmon=y
         CONFIG_PACKAGE_luci-app-openvpn-server=y
         CONFIG_PACKAGE_luci-app-passwall=y
@@ -156,8 +155,8 @@ jobs:
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_socks=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_socks=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y
-        # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan is not set
-        # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook is not set
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
         # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_kcptun is not set
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_haproxy=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y
@@ -174,31 +173,26 @@ jobs:
         CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Simple_obfs=y
         CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
         CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
-        # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan is not set
-        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Redsocks2=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
         # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun is not set
         # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server is not set
-        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_DNS2SOCKS=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
         CONFIG_PACKAGE_luci-app-ssr-python-pro-server=y
         # CONFIG_PACKAGE_luci-app-ssrserver-python is not set
-        # CONFIG_PACKAGE_luci-app-syncdial is not set
-        # CONFIG_PACKAGE_luci-app-syncthing is not set
-        # CONFIG_PACKAGE_luci-app-tinyproxy is not set
-        # CONFIG_PACKAGE_luci-app-transmission is not set
-        # CONFIG_PACKAGE_luci-app-trojan-server is not set
+        CONFIG_PACKAGE_luci-app-syncthing=y
+        CONFIG_PACKAGE_luci-app-transmission=y
+        CONFIG_PACKAGE_luci-app-trojan-server=y
         CONFIG_PACKAGE_luci-app-usb-printer=y
-        #CONFIG_PACKAGE_luci-app-v2ray-server=y
-        #CONFIG_PACKAGE_luci-app-verysync=y
+        CONFIG_PACKAGE_luci-app-v2ray-server=y
+        CONFIG_PACKAGE_luci-app-verysync=y
         CONFIG_PACKAGE_luci-app-vlmcsd=y
         # CONFIG_PACKAGE_luci-app-wireguard is not set
         CONFIG_PACKAGE_luci-app-wol=y
         # CONFIG_PACKAGE_luci-app-xlnetacc is not set
-        #CONFIG_PACKAGE_luci-app-zerotier=y
+        CONFIG_PACKAGE_luci-app-zerotier=y
         # CONFIG_PACKAGE_luci-app-unblockmusic is not set
         # CONFIG_PACKAGE_luci-app-qbittorrent is not set
-        # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
-        # CONFIG_PACKAGE_luci-app-unblockneteasemusic-mini is not set
-        CONFIG_PACKAGE_luci-app-cifsd=y
+        #CONFIG_PACKAGE_luci-app-advanced-reboot=y
         
         EOF
         # LuCI主题:
@@ -211,20 +205,23 @@ jobs:
         cat >> .config <<EOF
         CONFIG_PACKAGE_curl=y
         CONFIG_PACKAGE_htop=y
-        #CONFIG_PACKAGE_nano=y
-        #CONFIG_PACKAGE_screen=y
-        #CONFIG_PACKAGE_tree=y
-        #CONFIG_PACKAGE_vim-fuller=y
+        CONFIG_PACKAGE_nano=y
+        CONFIG_PACKAGE_screen=y
+        CONFIG_PACKAGE_tree=y
+        CONFIG_PACKAGE_vim-fuller=y
         CONFIG_PACKAGE_wget=y
         CONFIG_PACKAGE_blkid=y
         CONFIG_PACKAGE_hd-idle=y
         CONFIG_PACKAGE_iperf3=y
         CONFIG_PACKAGE_mount-utils=y
+        CONFIG_PACKAGE_mount-utils=y
+        CONFIG_PACKAGE_e2fsprogs=y
         CONFIG_PACKAGE_automount=y
         CONFIG_PACKAGE_autosamba=y
         CONFIG_PACKAGE_fdisk=y
         CONFIG_PACKAGE_e2fsprogs=y
-        CONFIG_PACKAGE_k3wifi=y
+        # CONFIG_PACKAGE_k3wifi is not set
+        CONFIG_PACKAGE_shadowsocksr-libev-server=y
         EOF
         # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
         cat >> .config <<EOF
@@ -253,12 +250,12 @@ jobs:
       run: |
           rm -rf ./artifact/
           mkdir -p ./artifact/
-          find openwrt/bin/targets/ -name "*phicomm-k3-squashfs*trx*" | xargs -i mv -f {} ./artifact/
+          #find openwrt/bin/targets/ -name "*sysupgrade*bin*" | xargs -i mv -f {} ./artifact/
           find openwrt/bin/targets/ -name "*combined*img*" | xargs -i mv -f {} ./artifact/
           #find openwrt/bin/targets/ -name "*combined*vmdk*" | xargs -i mv -f {} ./artifact/
 
     - name: Upload artifact
       uses: actions/upload-artifact@master
       with:
-        name: lean_lienol_k3
+        name: lean_lienol_x32
         path: ./artifact/
