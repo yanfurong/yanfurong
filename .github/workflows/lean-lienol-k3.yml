@@ -34,18 +34,13 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        echo "Deleting files, please wait ..."
-        sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d/*
-        sudo swapoff /swapfile
-        sudo rm -f /swapfile
-        #docker rmi `docker images -q`
-        #sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
+        sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d
+        sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        curl -fsSL https://raw.githubusercontent.com/P3TERX/dotfiles/master/.bashrc >> ~/.bashrc
+        sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget swig
         sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+        sudo -E apt-get -y autoremove --purge
+        sudo -E apt-get clean
 
     - name: Clone source code
       env: 
@@ -56,22 +51,33 @@ jobs:
     - name: Update & Install feeds
       working-directory: ./openwrt
       run: |
-        sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
-        sed -i 's/OpenWrt/Phicomm K3/g' package/base-files/files/bin/config_generate
-        sed -i '4a src-git lienol https://github.com/Lienol/openwrt-package' feeds.conf.default
+        sed -i 's/192.168.1.1/192.168.6.222/g' package/base-files/files/bin/config_generate
+        sed -i 's/OpenWrt/HP GEN8/g' package/base-files/files/bin/config_generate
+        sed -i '4a src-git lienol https://github.com/yasum2006/passwall' feeds.conf.default
+        sed -i '5a src-git helloworld https://github.com/fw876/helloworld' feeds.conf.default
         ./scripts/feeds update -a
-        rm -rf feeds/lienol/others/luci-app-verysync && rm -rf feeds/lienol/package/shadowsocksr-libev && rm -rf feeds/lienol/package/trojan && rm -rf feeds/lienol/package/v2ray && rm -rf feeds/lienol/package/pdnsd-alt && rm -rf feeds/lienol/package/openssl1.1 && rm -rf feeds/lienol/package/ipt2socks && rm -rf feeds/lienol/package/verysync && rm -rf package/lean/kcptun && rm -rf package/lean/luci-app-kodexplorer && rm -rf package/lean/luci-app-pppoe-relay && rm -rf package/lean/luci-app-pptp-server && rm -rf package/lean/luci-app-v2ray-server
+        # rm -rf feeds/lienol/others/luci-app-verysync && rm -rf feeds/lienol/package/shadowsocksr-libev && rm -rf feeds/lienol/package/trojan && rm -rf feeds/lienol/package/v2ray && rm -rf feeds/lienol/package/pdnsd-alt && rm -rf feeds/lienol/package/openssl1.1 && rm -rf feeds/lienol/package/ipt2socks && rm -rf feeds/lienol/package/verysync && rm -rf package/lean/kcptun && rm -rf package/lean/luci-app-kodexplorer && rm -rf package/lean/luci-app-pppoe-relay && rm -rf package/lean/luci-app-pptp-server && rm -rf package/lean/luci-app-v2ray-server
         ./scripts/feeds install -a
         ./scripts/feeds install -a
+        
+    - name: Install Luci for Clash
+      working-directory: ./openwrt
+      run: |
+        cd package
+        git clone https://github.com/frainzy1477/luci-app-clash
+         
     - name: Costom configure file
       working-directory: ./openwrt
       run: |
         rm -f ./.config*
         touch ./.config
-        # 编译x64固件:
+        # 编译k3固件:
         cat >> .config <<EOF
+        CONFIG_MODULES=y
+        CONFIG_HAVE_DOT_CONFIG=y
         CONFIG_TARGET_bcm53xx=y
-        CONFIG_TARGET_bcm53xx_DEVICE_phicomm-k3=y
+        CONFIG_TARGET_bcm53xx_generic=y
+        CONFIG_TARGET_bcm53xx_generic_DEVICE_phicomm-k3=y
         CONFIG_TARGET_BOARD="bcm53xx"
         EOF
         # 固件压缩:
@@ -112,7 +118,7 @@ jobs:
         CONFIG_PACKAGE_yaaw=y
         CONFIG_RPCBIND_LIBWRAP=y
         CONFIG_RPCBIND_RMTCALLS=y
-        CONFIG_PACKAGE_openssh-sftp-server=y          
+        CONFIG_PACKAGE_openssh-sftp-server=y    
         EOF
         # USB3.0支持:
         cat >> .config <<EOF
@@ -126,19 +132,23 @@ jobs:
         #CONFIG_PACKAGE_kmod-phylib-broadcom=y
         #CONFIG_PACKAGE_kmod-ssb=y
         #CONFIG_PACKAGE_kmod-tg3=y
+        CONFIG_PACKAGE_openssh-sftp-server=y
+        CONFIG_PACKAGE_cifsmount=y
+        CONFIG_PACKAGE_kmod-fs-cifs=y
+        CONFIG_PACKAGE_nfs-utils=y
         EOF
         # 常用LuCI插件选择:
         cat >> .config <<EOF     
         # CONFIG_PACKAGE_luci-app-accesscontrol is not set
         # CONFIG_PACKAGE_luci-app-adblock is not set
         # CONFIG_PACKAGE_luci-app-adbyby-plus is not set
+        # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
         CONFIG_PACKAGE_luci-app-aria2=y
         CONFIG_PACKAGE_luci-app-arpbind=y
         CONFIG_PACKAGE_luci-app-autoreboot=y
         #CONFIG_PACKAGE_luci-app-brook-server=y
-        #CONFIG_PACKAGE_luci-app-cifsd=y
         CONFIG_PACKAGE_luci-app-ddns=y
-        # CONFIG_PACKAGE_luci-app-dockerman is not set
+        #CONFIG_PACKAGE_luci-app-docker=y
         CONFIG_PACKAGE_luci-app-filetransfer=y
         CONFIG_PACKAGE_luci-app-firewall=y
         CONFIG_PACKAGE_luci-app-flowoffload=y
@@ -146,7 +156,6 @@ jobs:
         CONFIG_PACKAGE_luci-app-ipsec-vpnd=y
         # CONFIG_PACKAGE_luci-app-kcptun is not set
         CONFIG_PACKAGE_luci-app-minidlna=y
-        CONFIG_PACKAGE_luci-app-nfs=y
         CONFIG_PACKAGE_luci-app-nlbwmon=y
         CONFIG_PACKAGE_luci-app-openvpn-server=y
         CONFIG_PACKAGE_luci-app-passwall=y
@@ -156,8 +165,9 @@ jobs:
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_socks=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_socks=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y
-        # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan is not set
-        # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook is not set
+        #CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO=y
+        #CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
         # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_kcptun is not set
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_haproxy=y
         CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y
@@ -181,11 +191,9 @@ jobs:
         CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_DNS2SOCKS=y
         CONFIG_PACKAGE_luci-app-ssr-python-pro-server=y
         # CONFIG_PACKAGE_luci-app-ssrserver-python is not set
-        # CONFIG_PACKAGE_luci-app-syncdial is not set
-        # CONFIG_PACKAGE_luci-app-syncthing is not set
-        # CONFIG_PACKAGE_luci-app-tinyproxy is not set
-        # CONFIG_PACKAGE_luci-app-transmission is not set
-        # CONFIG_PACKAGE_luci-app-trojan-server is not set
+        #CONFIG_PACKAGE_luci-app-syncthing=y
+        #CONFIG_PACKAGE_luci-app-transmission=y
+        CONFIG_PACKAGE_luci-app-trojan-server=y
         CONFIG_PACKAGE_luci-app-usb-printer=y
         #CONFIG_PACKAGE_luci-app-v2ray-server=y
         #CONFIG_PACKAGE_luci-app-verysync=y
@@ -195,11 +203,18 @@ jobs:
         # CONFIG_PACKAGE_luci-app-xlnetacc is not set
         #CONFIG_PACKAGE_luci-app-zerotier=y
         # CONFIG_PACKAGE_luci-app-unblockmusic is not set
+        # CONFIG_PACKAGE_luci-app-unblockmusic is not set
+        # CONFIG_UnblockNeteaseMusic_Go is not set
+        # CONFIG_UnblockNeteaseMusic_NodeJS is not set
         # CONFIG_PACKAGE_luci-app-qbittorrent is not set
-        # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
+        #CONFIG_PACKAGE_luci-app-advanced-reboot=y
         # CONFIG_PACKAGE_luci-app-unblockneteasemusic-mini is not set
         CONFIG_PACKAGE_luci-app-cifsd=y
-        
+        CONFIG_PACKAGE_luci-app-openclash=y
+        # CONFIG_PACKAGE_luci-app-airplay2 is not set
+        # CONFIG_PACKAGE_luci-app-nfs is not set
+        # CONFIG_PACKAGE_luci-app-music-remote-center is not set
+        CONFIG_PACKAGE_luci-app-clash=y
         EOF
         # LuCI主题:
         cat >> .config <<EOF
