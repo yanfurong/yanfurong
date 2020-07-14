@@ -1,0 +1,278 @@
+#=================================================
+# https://github.com/P3TERX/Actions-OpenWrt
+# Description: Build OpenWrt using GitHub Actions
+# Lisence: MIT
+# Author: P3TERX
+# Blog: https://p3terx.com
+#=================================================
+
+name: Lean_lienol-x64
+
+on: 
+  release:
+    types: [published]
+
+  push:
+    branches: 
+      - master
+
+  #schedule:
+  #  - cron: 0 01 * * *
+  
+  #watch:
+  #  types: [started]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d
+        sudo -E apt-get -y purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget swig
+        sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+        sudo -E apt-get -y autoremove --purge
+        sudo -E apt-get clean
+
+    - name: Clone source code
+      env: 
+        REPO_URL: https://github.com/coolsnowwolf/lede
+        REPO_BRANCH: master
+      run: git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+      
+    - name: Update & Install feeds
+      working-directory: ./openwrt
+      run: |
+        sed -i 's/\"#src-git\"/\"src-git\"/g' ./feeds.conf.default
+        sed -i 's/192.168.1.1/192.168.2.55/g' package/base-files/files/bin/config_generate
+        sed -i 's/OpenWrt/HP GEN8/g' package/base-files/files/bin/config_generate
+        sed -i '$a src-git lienol https://github.com/Lienol/openwrt-package' feeds.conf.default
+        ./scripts/feeds clean
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+          
+        
+    - name: Install Luci for Clash
+      working-directory: ./openwrt
+      run: |
+        git clone https://github.com/frainzy1477/luci-app-clash openwrt/package
+         
+    - name: Costom configure file
+      working-directory: ./openwrt
+      run: |
+        rm -f ./.config*
+        touch ./.config
+        # 编译x64固件:
+        cat >> .config <<EOF
+        CONFIG_TARGET_x86=y
+        CONFIG_TARGET_x86_64=y
+        CONFIG_TARGET_x86_64_Generic=y
+        EOF
+        # 固件压缩:
+        cat >> .config <<EOF
+        #CONFIG_TARGET_IMAGES_GZIP=y
+        EOF
+        # 编译UEFI固件:
+        cat >> .config <<EOF
+        #CONFIG_EFI_IMAGES=y
+        EOF
+        # IPv6支持:
+        cat >> .config <<EOF
+        #CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+        #CONFIG_PACKAGE_ipv6helper=y
+        EOF
+        # 多文件系统支持:
+        cat >> .config <<EOF
+        CONFIG_NFS_KERNEL_SERVER_V4=y
+        CONFIG_PACKAGE_kmod-crypto-cts=y
+        CONFIG_PACKAGE_kmod-dax=y
+        CONFIG_PACKAGE_kmod-dm=y
+        CONFIG_PACKAGE_kmod-dnsresolver=y
+        CONFIG_PACKAGE_kmod-fs-exportfs=y
+        CONFIG_PACKAGE_kmod-fs-nfs-common-rpcsec=y
+        CONFIG_PACKAGE_kmod-fs-nfs=y
+        CONFIG_PACKAGE_kmod-fs-nfs-common=y
+        CONFIG_PACKAGE_kmod-fs-nfs-v3=y
+        CONFIG_PACKAGE_kmod-fs-nfs-v4=y
+        CONFIG_PACKAGE_kmod-fs-nfsd=y
+        CONFIG_PACKAGE_libdevmapper=y
+        CONFIG_PACKAGE_libkeyutils=y
+        CONFIG_PACKAGE_libtirpc=y
+        CONFIG_PACKAGE_libwrap=y
+        CONFIG_PACKAGE_nfs-kernel-server=y
+        CONFIG_PACKAGE_nfs-kernel-server-utils=y
+        CONFIG_PACKAGE_nfs-utils-libs=y
+        CONFIG_PACKAGE_rpcbind=y
+        CONFIG_PACKAGE_yaaw=y
+        CONFIG_RPCBIND_LIBWRAP=y
+        CONFIG_RPCBIND_RMTCALLS=y
+        CONFIG_PACKAGE_openssh-sftp-server=y          
+        EOF
+        # USB3.0支持:
+        cat >> .config <<EOF
+        CONFIG_PACKAGE_kmod-usb-ohci=y
+        CONFIG_PACKAGE_kmod-usb-ohci-pci=y
+        CONFIG_PACKAGE_kmod-usb2=y
+        CONFIG_PACKAGE_kmod-usb2-pci=y
+        CONFIG_PACKAGE_kmod-usb3=y
+        CONFIG_PACKAGE_kmod-b44=y
+        CONFIG_PACKAGE_kmod-phy-broadcom=y
+        CONFIG_PACKAGE_kmod-phylib-broadcom=y
+        CONFIG_PACKAGE_kmod-ssb=y
+        CONFIG_PACKAGE_kmod-tg3=y
+        CONFIG_PACKAGE_cifsmount=y
+        CONFIG_PACKAGE_kmod-fs-cifs=y
+        CONFIG_PACKAGE_nfs-utils=y
+        EOF
+        # 常用LuCI插件选择:
+        cat >> .config <<EOF     
+        # CONFIG_PACKAGE_luci-app-accesscontrol is not set
+        # CONFIG_PACKAGE_luci-app-adblock is not set
+        # CONFIG_PACKAGE_luci-app-adbyby-plus is not set
+        # CONFIG_PACKAGE_luci-app-advanced-reboot is not set
+        CONFIG_PACKAGE_luci-app-aria2=y
+        CONFIG_PACKAGE_luci-app-arpbind=y
+        CONFIG_PACKAGE_luci-app-autoreboot=y
+        # CONFIG_PACKAGE_luci-app-brook-server is not set
+        # CONFIG_PACKAGE_luci-app-cifsd is not set
+        CONFIG_PACKAGE_luci-app-ddns=y
+        # CONFIG_PACKAGE_luci-app-dockerman is not set
+        CONFIG_PACKAGE_luci-app-filetransfer=y
+        CONFIG_PACKAGE_luci-app-firewall=y
+        CONFIG_PACKAGE_luci-app-flowoffload=y
+        CONFIG_PACKAGE_luci-app-hd-idle=y
+        CONFIG_PACKAGE_luci-app-ipsec-vpnd=y
+        # CONFIG_PACKAGE_luci-app-kcptun is not set
+        CONFIG_PACKAGE_luci-app-minidlna=y
+        CONFIG_PACKAGE_luci-app-nlbwmon=y
+        CONFIG_PACKAGE_luci-app-openvpn-server=y
+        CONFIG_PACKAGE_luci-app-passwall=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ipt2socks=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_socks=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_socks=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
+        # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_kcptun is not set
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_haproxy=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_pdnsd=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_dns2socks=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_v2ray-plugin=y
+        CONFIG_PACKAGE_luci-app-passwall_INCLUDE_simple-obfs=y
+        CONFIG_PACKAGE_luci-app-ramfree=y
+        CONFIG_PACKAGE_luci-app-samba=y 
+        CONFIG_PACKAGE_luci-app-smartdns=y
+        # CONFIG_PACKAGE_luci-app-softethervpn is not set
+        CONFIG_PACKAGE_luci-app-ssr-plus=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Simple_obfs=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Redsocks2=y
+        # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun is not set
+        # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server is not set
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_DNS2SOCKS=y
+        CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
+        CONFIG_PACKAGE_luci-app-ssr-python-pro-server=y
+        # CONFIG_PACKAGE_luci-app-ssrserver-python is not set
+        # CONFIG_PACKAGE_luci-app-syncthing is not set
+        # CONFIG_PACKAGE_luci-app-transmission is not set
+        # CONFIG_PACKAGE_luci-app-trojan-server is not set 
+        CONFIG_PACKAGE_luci-app-usb-printer=y
+        CONFIG_PACKAGE_luci-app-v2ray-server=y
+        # CONFIG_PACKAGE_luci-app-verysync is not set
+        CONFIG_PACKAGE_luci-app-vlmcsd=y
+        # CONFIG_PACKAGE_luci-app-wireguard is not set
+        CONFIG_PACKAGE_luci-app-wol=y
+        # CONFIG_PACKAGE_luci-app-xlnetacc is not set
+        # CONFIG_PACKAGE_luci-app-zerotier is not set
+        # CONFIG_PACKAGE_luci-app-unblockmusic is not set
+        # CONFIG_PACKAGE_luci-app-unblockmusic is not set
+        # CONFIG_UnblockNeteaseMusic_Go is not set
+        # CONFIG_UnblockNeteaseMusic_NodeJS is not set
+        # CONFIG_PACKAGE_luci-app-qbittorrent is not set
+        #CONFIG_PACKAGE_luci-app-advanced-reboot=y
+        #CONFIG_PACKAGE_luci-app-wireguard is not set
+        CONFIG_PACKAGE_luci-app-openclash=y
+        CONFIG_PACKAGE_luci-app-airplay2=y
+        # CONFIG_PACKAGE_luci-app-nfs is not set
+        # CONFIG_PACKAGE_luci-app-music-remote-center is not set
+        # CONFIG_PACKAGE_luci-app-amule is not set
+        CONFIG_PACKAGE_luci-app-clash=y
+        EOF
+        # LuCI主题:
+        cat >> .config <<EOF
+        CONFIG_PACKAGE_luci-theme-bootstrap=y
+        #CONFIG_PACKAGE_luci-theme-argon=y
+        #CONFIG_PACKAGE_luci-theme-netgear=y
+        EOF
+        # 常用软件包和指令:
+        cat >> .config <<EOF
+        CONFIG_PACKAGE_curl=y
+        CONFIG_PACKAGE_htop=y
+        CONFIG_PACKAGE_nano=y
+        CONFIG_PACKAGE_screen=y
+        CONFIG_PACKAGE_tree=y
+        CONFIG_PACKAGE_vim-fuller=y
+        CONFIG_PACKAGE_wget=y
+        CONFIG_PACKAGE_blkid=y
+        CONFIG_PACKAGE_hd-idle=y
+        CONFIG_PACKAGE_iperf3=y
+        CONFIG_PACKAGE_mount-utils=y
+        CONFIG_PACKAGE_e2fsprogs=y
+        CONFIG_PACKAGE_automount=y
+        CONFIG_PACKAGE_autosamba=y
+        CONFIG_PACKAGE_fdisk=y
+        CONFIG_PACKAGE_e2fsprogs=y
+        #CONFIG_PACKAGE_k3wifi=y
+        CONFIG_PACKAGE_shadowsocksr-libev-server=y
+        EOF
+        # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
+        cat >> .config <<EOF
+        # CONFIG_TARGET_IMAGES_PAD is not set
+        # CONFIG_VMDK_IMAGES is not set
+        EOF
+        # 
+        # ========================固件定制部分结束========================
+        # 
+        sed -i 's/^[ \t]*//g' ./.config
+        make defconfig
+         
+    - name: Download package
+      working-directory: ./openwrt
+      run: |
+        make download -j$(nproc)
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+    - name: Build firmware
+      working-directory: ./openwrt
+      run: |
+        echo -e "$(nproc) thread build."
+        make -j$(nproc) V=s
+        
+    - name: Assemble artifact
+      run: |
+          rm -rf ./artifact/
+          mkdir -p ./artifact/
+          #find openwrt/bin/targets/ -name "*sysupgrade*bin*" | xargs -i mv -f {} ./artifact/
+          find openwrt/bin/targets/ -name "*combined.img*" | xargs -i mv -f {} ./artifact/
+          #find openwrt/bin/targets/ -name "*combined*vmdk*" | xargs -i mv -f {} ./artifact/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: lean_lienol_x64
+        path: ./artifact/
